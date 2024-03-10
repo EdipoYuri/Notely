@@ -1,30 +1,11 @@
-# React + TypeScript + Vite
+# Notely - App de notas
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este app foi criado com o objetivo de estudar e praticar as bibliotecas shadcn/ui e tailwindcss, e foi criado com vitejs + eslint. Caso queira ver o layout do projeto no Figma no qual me baseei para desenvolver, é só [clicar aqui](https://www.figma.com/file/4MCWrHpxJZP3Ic9uTafR4O/big-dev-soon-notely?type=design&node-id=0%3A1&mode=design&t=qSA7vun7gsoySxVX-1).
 
-Currently, two official plugins are available:
+Caso queira ver o projeto sem ter que cloná-lo e executá-lo no seu dispositivo, é só [clicar aqui](https://notelyweb.netlify.app).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Instalando e executando o projeto
 
-## Expanding the ESLint configuration
+- Após clonar o projeto, execute o comando `npm install` ou `yarn` para instalar as dependências.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+- Depois de baixar todas as dependências, execute o comando `npm dev` ou `yarn dev`. Uma nova aba será aberta no navegador automaticamente com o projeto já funcionando.

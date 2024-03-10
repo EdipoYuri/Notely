@@ -1,105 +1,54 @@
 import { useEffect, useState } from "react"
-import { z } from "zod"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { CaretSortIcon, CheckIcon, PlusIcon } from "@radix-ui/react-icons"
-import { format } from 'date-fns'
 
-import { Button } from "./components/ui/button"
+import { format } from 'date-fns'
+import { SearchIcon } from "lucide-react"
+
 import { Input } from "./components/ui/input"
-import { Textarea } from "./components/ui/textarea"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "./components/ui/form"
+
 import {
   Tabs,
   TabsList,
   TabsTrigger
 } from "./components/ui/tabs"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "./components/ui/popover"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem
-} from "./components/ui/command"
 import { Checkbox } from "./components/ui/checkbox"
-import NoteCard from "./components/ui/NoteCard"
-import { cn } from "./lib/utils"
+import NoteCard from "./components/NoteCard"
 import NotesSVG from './assets/notes.svg'
 import SearchSVG from './assets/search-results.svg'
-import { SearchIcon } from "lucide-react"
-
-const formSchema = z.object({
-  title: z.string().max(50).min(3, {
-    message: 'Insert a title'
-  }),
-  category: z.string().min(1, {
-    message: 'Select a category'
-  }),
-  description: z.string().optional()
-})
+import DialogForm from "./components/DialogForm"
 
 type TCategories = "personal" | "home" | "business"
 
-type TCards = {
+type TNote = {
   id: number,
   title: string,
   category: TCategories,
   description?: string,
   createdAt?: string,
+  completed: number
 }
 
-const options = [
-  {
-    value: 'personal',
-    label: 'Personal',
-    bgColor: 'orange-200',
-    fontColor: 'orange-900'
-  },
-  {
-    value: 'home',
-    label: 'Home',
-    bgColor: '#A5D6A7',
-    fontColor: '#1B5E20'
-  },
-  {
-    value: 'business',
-    label: 'Business',
-    bgColor: '#B39DDB',
-    fontColor: '#4527A0'
-  },
-]
+type TEditNote = {
+  id?: number,
+  title: string,
+  category: TCategories,
+  description?: string,
+  createdAt?: string,
+  completed: number
+}
 
-const gridCardsClass = "grid grid-flow-row gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+const hasNotesClass = "grid grid-flow-row gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 
-const noCardsClass = "w-full pt-20 flex flex-row justify-center items-center"
+const noNotesClass = "w-full pt-20 flex flex-row justify-center items-center"
 
 function App() {
-  const [cards, setCards] = useState<TCards[]>([])
-  const [filteredCards, setFilteredCards] = useState<TCards[]>([])
+  const [notes, setNotes] = useState<TNote[]>([])
+  const [filteredNotes, setFilteredNotes] = useState<TNote[]>([])
   const [searchText, setSearchText] = useState('')
+  const [onlyCompleted, setOnlyCompleted] = useState(false)
   const [openDialog, setOpenDialog] = useState(false)
-  const [openCombobox, setOpenCombobox] = useState(false)
   const [tab, setTab] = useState('all')
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editItem, setEditItem] = useState<TNote | null>(null)
 
   const getTodayDate = () => {
     const today = new Date();
@@ -108,79 +57,142 @@ function App() {
   }
 
   useEffect(() => {
-    setFilteredCards(cards)
+    setFilteredNotes(notes)
     setTab('all')
-  }, [cards])
+  }, [notes])
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: '',
-      category: '',
-      description: ''
-    }
-  })
+  useEffect(() => {
+    const localNotes = localStorage.getItem('notes')
+
+    if (!localNotes) return
+
+    setNotes(JSON.parse(localNotes))
+    setFilteredNotes(JSON.parse(localNotes))
+    setTab('all')
+  }, [])
 
   const onChangeSearch = (value: string) => {
     setSearchText(value)
 
     if (tab !== 'all' && value !== '') {
-      const cardsByCategory = cards.filter(item => item.category === tab && item.title.toUpperCase().includes(value.toUpperCase()))
-      setFilteredCards(cardsByCategory)
+      const notesByCategory = notes.filter(
+        item => item.category === tab && item.title.toUpperCase().includes(value.toUpperCase())
+      )
+      setFilteredNotes(notesByCategory)
       return
     }
 
     if (tab === 'all' && value !== '') {
-      const cardsByCategory = cards.filter(item => item.title.toUpperCase().includes(value.toUpperCase()))
-      setFilteredCards(cardsByCategory)
+      const notesByCategory = notes.filter(
+        item => item.title.toUpperCase().includes(value.toUpperCase())
+      )
+      setFilteredNotes(notesByCategory)
       return
     }
 
     if (tab !== 'all' && value === '') {
-      const cardsByCategory = cards.filter(item => item.category === tab)
-      setFilteredCards(cardsByCategory)
+      const notesByCategory = notes.filter(item => item.category === tab)
+      setFilteredNotes(notesByCategory)
       return
     }
 
-    setFilteredCards(cards)
+    setFilteredNotes(notes)
   }
 
   const onChangeTab = (value: string) => {
     setTab(value)
 
     if (value !== 'all' && searchText !== '') {
-      const cardsByCategory = cards.filter(item => item.category === value && item.title.toUpperCase().includes(searchText.toUpperCase()))
-      setFilteredCards(cardsByCategory)
+      const notesByCategory = notes.filter(
+        item => item.category === value && item.title.toUpperCase().includes(searchText.toUpperCase())
+      )
+      setFilteredNotes(notesByCategory)
       return
     }
 
     if (value === 'all' && searchText !== '') {
-      const cardsByCategory = cards.filter(item => item.title.toUpperCase().includes(searchText.toUpperCase()))
-      setFilteredCards(cardsByCategory)
+      const notesByCategory = notes.filter(
+        item => item.title.toUpperCase().includes(searchText.toUpperCase())
+      )
+      setFilteredNotes(notesByCategory)
       return
     }
 
     if (value !== 'all' && searchText === '') {
-      const cardsByCategory = cards.filter(item => item.category === value)
-      setFilteredCards(cardsByCategory)
+      const notesByCategory = notes.filter(item => item.category === value)
+      setFilteredNotes(notesByCategory)
       return
     }
 
-    setFilteredCards(cards)
+    setFilteredNotes(notes)
   }
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const id = cards.length === 0 ? 1 : cards[cards.length - 1].id + 1
+  const onSubmit = (data: TEditNote) => {
+    if (data.id) {
+      const edittedNotes = notes.map(item => item.id === editId
+        ? {
+          ...item,
+          ...data,
+          category: data.category as TCategories
+        }
+        : item
+      )
 
-    setCards([...cards, {
-      ...values,
+      setNotes(edittedNotes)
+      localStorage.setItem('notes', JSON.stringify(edittedNotes))
+      setOpenDialog(false)
+      setEditId(null)
+
+      return
+    }
+
+    const orderedId = notes.sort((a, b) => a.id - b.id)
+
+    const id = orderedId.length === 0 ? 1 : orderedId[orderedId.length - 1].id + 1
+
+    const newNotes = [...notes, {
+      ...data,
       id,
-      category: values.category as TCategories,
-      createdAt: getTodayDate()
-    }])
+      category: data.category as TCategories,
+      createdAt: getTodayDate(),
+      completed: 0
+    }]
+
+    setNotes(newNotes)
+
+    localStorage.setItem('notes', JSON.stringify(newNotes))
+
     setOpenDialog(false)
-    form.reset()
   }
+
+  const onClickDeleteNote = (id: number) => {
+    const filteredNotes = notes.filter(item => item.id !== id)
+
+    setNotes(filteredNotes)
+    localStorage.setItem('notes', JSON.stringify(filteredNotes))
+  }
+
+  const onClickEditNote = (id: number) => {
+    const editNoteValues = notes.find(item => item.id === id)
+
+    if (!editNoteValues) return
+
+    setEditId(id)
+    setEditItem(editNoteValues)
+    setOpenDialog(true)
+  }
+
+  const onClickChangeStatus = (id: number) => {
+    const noteCompleteFilter = notes.map(item => item.id === id
+      ? { ...item, completed: item.completed ? 0 : 1 }
+      : item
+    )
+
+    setNotes(noteCompleteFilter)
+    localStorage.setItem('notes', JSON.stringify(noteCompleteFilter))
+  }
+
+  const completedNotes = filteredNotes.filter(note => note.completed)
 
   return (
     <div className="w-full h-full min-h-screen bg-gray-200 m">
@@ -196,133 +208,12 @@ function App() {
           />
         </div>
 
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-          <DialogTrigger asChild>
-            <Button onClick={() => form.reset()}>
-              <PlusIcon className="mr-2 h-4 w-4" /> Add
-            </Button>
-          </DialogTrigger>
-
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add note</DialogTitle>
-            </DialogHeader>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-x-4">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-
-                        <FormControl>
-                          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openCombobox}
-                                className="w-full justify-between font-normal"
-                              >
-                                {field.value
-                                  ? options.find((options) => options.value === field.value)?.label
-                                  : "Select framework..."}
-                                <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-
-                            <PopoverContent className="p-1 PopoverContent">
-                              <Command>
-                                <CommandEmpty>Options not found.</CommandEmpty>
-
-                                <CommandGroup>
-                                  {options.map(option => (
-                                    <CommandItem
-                                      key={option.value}
-                                      value={option.value}
-                                      onSelect={currentValue => {
-                                        form.setValue('category', currentValue === field.value ? '' : currentValue)
-                                        setOpenCombobox(false)
-                                      }}
-                                    >
-                                      {option.label}
-
-                                      <CheckIcon
-                                        className={cn(
-                                          "ml-auto h-4 w-4",
-                                          field.value === option.value ? "opacity-100" : "opacity-0"
-                                        )}
-                                      />
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-
-                          {/* <Input {...field} /> */}
-                        </FormControl>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2  mt-8">
-                        <FormLabel className="flex flex-row items-center justify-between">
-                          <p>
-                            Description <span className="font-normal text-gray-300">(optional)</span>
-                          </p>
-
-                          <span className="font-normal text-gray-300">
-                            {field.value?.length}/200
-                          </span>
-                        </FormLabel>
-
-                        <FormControl>
-                          <Textarea {...field} maxLength={200} rows={4} />
-                        </FormControl>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="link" className="text-black">Cancel</Button>
-                  </DialogClose>
-
-                  <Button type="submit">Add</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <DialogForm
+          editNoteData={editItem}
+          sendNoteData={onSubmit}
+          open={openDialog}
+          setOpen={setOpenDialog}
+        />
       </header>
 
       <main className="p-12 pt-8">
@@ -338,7 +229,11 @@ function App() {
             </TabsList>
 
             <div className="flex items-center space-x-2 pl-6 mb-4">
-              <Checkbox id="terms" />
+              <Checkbox
+                id="terms"
+                onCheckedChange={() => setOnlyCompleted(!onlyCompleted)}
+                checked={onlyCompleted}
+              />
 
               <label
                 htmlFor="terms"
@@ -349,19 +244,47 @@ function App() {
             </div>
           </div>
 
-          <div className={cards.length === 0 || filteredCards.length === 0 ? noCardsClass : gridCardsClass}>
-            {cards.length === 0 ? (
+          <div className={notes.length === 0 || filteredNotes.length === 0 || (onlyCompleted && completedNotes.length === 0)
+            ? noNotesClass
+            : hasNotesClass
+          }>
+            {notes.length === 0 || (onlyCompleted && completedNotes.length === 0) ? (
               <div className="flex flex-col justify-center items-center">
                 <img src={NotesSVG} />
-                <h2 className="mt-4 text-xl font-semibold">You don't have any notes</h2>
+                <h2 className="mt-4 text-xl font-semibold">
+                  {onlyCompleted ? 'You don\'t have any completed notes' : 'You don\'t have any notes'}
+                </h2>
               </div>
-            ) : filteredCards.length === 0 ? (
+            ) : filteredNotes.length === 0 ? (
               <div className="flex flex-col justify-center items-center">
                 <img src={SearchSVG} />
                 <h2 className="mt-4 text-xl font-semibold">No notes found</h2>
               </div>
-            ) : filteredCards.map(item => (
-              <NoteCard cardValues={item} setTab={onChangeTab} />))}
+            ) : onlyCompleted ? completedNotes.map(item => (
+              <NoteCard
+                data={item}
+                setTab={onChangeTab}
+                deleteNote={onClickDeleteNote}
+                editNote={onClickEditNote}
+                changeStatus={onClickChangeStatus}
+              />
+            )) : filteredNotes
+              .sort((a, b) => b.id - a.id)
+              .sort((a, b) => a.completed - b.completed)
+              .map(item => {
+                if (onlyCompleted && !item.completed) return
+
+                return (
+                  <NoteCard
+                    data={item}
+                    setTab={onChangeTab}
+                    deleteNote={onClickDeleteNote}
+                    editNote={onClickEditNote}
+                    changeStatus={onClickChangeStatus}
+                  />
+                )
+              })
+            }
           </div>
         </Tabs>
       </main>
